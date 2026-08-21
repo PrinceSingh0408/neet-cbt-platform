@@ -4,13 +4,44 @@
   <title>NEET CBT Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .option {
-      padding: 12px;
-      margin: 8px 0;
-      border: 2px solid #ccc;
-      border-radius: 8px;
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8fafc; }
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .brand { font-weight: bold; font-size: 18px; }
+    header .palette-toggle {
+      background: #2563eb;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-weight: bold;
       cursor: pointer;
+    }
+    #meta {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    #timer { color: #dc2626; font-weight: bold; }
+    #progress { color: #555; }
+    main { padding: 16px; max-width: 500px; margin: 0 auto; }
+    #question { font-size: 20px; margin-top: 10px; }
+    .option {
+      padding: 14px;
+      margin: 10px 0;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      cursor: pointer;
+      background: white;
     }
     .option.selected {
       border-color: #2563eb;
@@ -20,27 +51,41 @@
       margin-top: 20px;
       display: flex;
       justify-content: space-between;
+      gap: 8px;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 6px;
+    button.action {
+      flex: 1;
+      padding: 12px;
+      font-size: 15px;
+      border-radius: 8px;
       border: none;
       background: #2563eb;
       color: white;
       cursor: pointer;
+      font-weight: bold;
     }
-    button:disabled { background: #ccc; }
-    #progress { color: #666; }
-    #timer { color: #dc2626; font-weight: bold; margin-bottom: 10px; }
-    #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; }
-    #result { font-size: 18px; line-height: 1.6; }
+    button.action.secondary { background: #64748b; }
+    button.action:disabled { background: #cbd5e1; }
+    #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; padding: 14px; font-size: 16px; }
+    #result { font-size: 18px; line-height: 1.8; }
 
-    #palette {
+    #paletteOverlay {
+      display: none;
+      position: fixed;
+      top: 0; right: 0;
+      width: 240px;
+      height: 100%;
+      background: white;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+      padding: 16px;
+      z-index: 10;
+    }
+    #paletteOverlay.open { display: block; }
+    #paletteOverlay h3 { margin-top: 0; }
+    #paletteGrid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 8px;
-      margin-top: 25px;
     }
     .palette-btn {
       padding: 10px 0;
@@ -54,22 +99,45 @@
     }
     .palette-btn.answered { background: #16a34a; color: white; }
     .palette-btn.current { outline: 3px solid #2563eb; }
+    #closePalette {
+      margin-top: 16px;
+      width: 100%;
+      padding: 10px;
+      background: #64748b;
+      color: white;
+      border: none;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
-  <div id="timer"></div>
-  <div id="progress"></div>
-  <h2 id="question">Loading...</h2>
-  <div id="options"></div>
-  <div class="nav-buttons">
-    <button id="prevBtn" onclick="goPrev()">Previous</button>
-    <button id="nextBtn" onclick="goNext()">Next</button>
+  <header>
+    <div class="brand">🧬 NEET CBT</div>
+    <button class="palette-toggle" onclick="togglePalette()">📋 <span id="paletteBtnLabel"></span></button>
+  </header>
+
+  <div id="meta">
+    <div id="timer"></div>
+    <div id="progress"></div>
   </div>
 
-  <div id="palette"></div>
+  <main>
+    <h2 id="question">Loading...</h2>
+    <div id="options"></div>
+    <div class="nav-buttons">
+      <button class="action secondary" id="prevBtn" onclick="goPrev()">Previous</button>
+      <button class="action secondary" onclick="skipQuestion()">Skip</button>
+      <button class="action" id="nextBtn" onclick="goNext()">Next</button>
+    </div>
+    <button id="submitBtn" onclick="submitTest()">Submit Test</button>
+    <div id="result"></div>
+  </main>
 
-  <button id="submitBtn" onclick="submitTest()">Submit Test</button>
-  <div id="result"></div>
+  <div id="paletteOverlay">
+    <h3>Question Palette</h3>
+    <div id="paletteGrid"></div>
+    <button id="closePalette" onclick="togglePalette()">Close</button>
+  </div>
 
   <script>
     const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
@@ -91,7 +159,6 @@
       .then(data => {
         questions = data;
         renderQuestion();
-        renderPalette();
         startTimer();
       })
       .catch(err => {
@@ -114,12 +181,13 @@
     function updateTimerDisplay() {
       const min = Math.floor(timeLeft / 60);
       const sec = timeLeft % 60;
-      document.getElementById("timer").innerText = `Time Left: ${min}:${sec.toString().padStart(2, "0")}`;
+      document.getElementById("timer").innerText = `⏱ ${min}:${sec.toString().padStart(2, "0")}`;
     }
 
     function renderQuestion() {
       const q = questions[currentIndex];
-      document.getElementById("progress").innerText = `Question ${currentIndex + 1} of ${questions.length}`;
+      document.getElementById("progress").innerText = `Q ${currentIndex + 1} / ${questions.length}`;
+      document.getElementById("paletteBtnLabel").innerText = `${currentIndex + 1}/${questions.length}`;
       document.getElementById("question").innerText = q.question_text;
 
       const options = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
@@ -142,7 +210,7 @@
     }
 
     function renderPalette() {
-      const container = document.getElementById("palette");
+      const container = document.getElementById("paletteGrid");
       container.innerHTML = "";
       questions.forEach((q, i) => {
         const btn = document.createElement("button");
@@ -153,9 +221,14 @@
         btn.onclick = () => {
           currentIndex = i;
           renderQuestion();
+          togglePalette();
         };
         container.appendChild(btn);
       });
+    }
+
+    function togglePalette() {
+      document.getElementById("paletteOverlay").classList.toggle("open");
     }
 
     function selectOption(questionId, key, element) {
@@ -163,6 +236,10 @@
       element.classList.add("selected");
       answers[questionId] = key;
       renderPalette();
+    }
+
+    function skipQuestion() {
+      goNext();
     }
 
     function goNext() {
@@ -181,7 +258,6 @@
 
     function submitTest() {
       clearInterval(timerInterval);
-
       let correct = 0, incorrect = 0, unattempted = 0;
 
       questions.forEach(q => {
@@ -193,14 +269,7 @@
 
       const score = (correct * 4) - (incorrect * 1);
 
-      document.getElementById("question").style.display = "none";
-      document.getElementById("options").style.display = "none";
-      document.querySelector(".nav-buttons").style.display = "none";
-      document.getElementById("palette").style.display = "none";
-      document.getElementById("submitBtn").style.display = "none";
-      document.getElementById("progress").style.display = "none";
-      document.getElementById("timer").style.display = "none";
-
+      document.querySelector("main").innerHTML = `<div id="result"></div>`;
       document.getElementById("result").innerHTML = `
         <h2>Test Submitted</h2>
         <p>Score: ${score} / ${questions.length * 4}</p>
@@ -211,4 +280,4 @@
     }
   </script>
 </body>
-</html>
+  </html>

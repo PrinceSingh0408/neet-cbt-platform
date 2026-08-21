@@ -30,16 +30,15 @@
       color: white;
       cursor: pointer;
     }
-    button:disabled {
-      background: #ccc;
-    }
-    #progress {
-      color: #666;
-      margin-bottom: 10px;
-    }
+    button:disabled { background: #ccc; }
+    #progress { color: #666; }
+    #timer { color: #dc2626; font-weight: bold; margin-bottom: 10px; }
+    #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; }
+    #result { font-size: 18px; line-height: 1.6; }
   </style>
 </head>
 <body>
+  <div id="timer"></div>
   <div id="progress"></div>
   <h2 id="question">Loading...</h2>
   <div id="options"></div>
@@ -47,6 +46,8 @@
     <button id="prevBtn" onclick="goPrev()">Previous</button>
     <button id="nextBtn" onclick="goNext()">Next</button>
   </div>
+  <button id="submitBtn" onclick="submitTest()">Submit Test</button>
+  <div id="result"></div>
 
   <script>
     const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
@@ -54,7 +55,9 @@
 
     let questions = [];
     let currentIndex = 0;
-    let answers = {}; // stores selected option per question id
+    let answers = {};
+    let timeLeft = 300; // 5 minutes for testing
+    let timerInterval;
 
     fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, {
       headers: {
@@ -66,11 +69,30 @@
       .then(data => {
         questions = data;
         renderQuestion();
+        startTimer();
       })
       .catch(err => {
         document.getElementById("question").innerText = "Error loading questions.";
         console.error(err);
       });
+
+    function startTimer() {
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          submitTest();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const min = Math.floor(timeLeft / 60);
+      const sec = timeLeft % 60;
+      document.getElementById("timer").innerText = `Time Left: ${min}:${sec.toString().padStart(2, "0")}`;
+    }
 
     function renderQuestion() {
       const q = questions[currentIndex];
@@ -112,6 +134,36 @@
         currentIndex--;
         renderQuestion();
       }
+    }
+
+    function submitTest() {
+      clearInterval(timerInterval);
+
+      let correct = 0, incorrect = 0, unattempted = 0;
+
+      questions.forEach(q => {
+        const given = answers[q.id];
+        if (!given) unattempted++;
+        else if (given === q.correct_option) correct++;
+        else incorrect++;
+      });
+
+      const score = (correct * 4) - (incorrect * 1);
+
+      document.getElementById("question").style.display = "none";
+      document.getElementById("options").style.display = "none";
+      document.querySelector(".nav-buttons").style.display = "none";
+      document.getElementById("submitBtn").style.display = "none";
+      document.getElementById("progress").style.display = "none";
+      document.getElementById("timer").style.display = "none";
+
+      document.getElementById("result").innerHTML = `
+        <h2>Test Submitted</h2>
+        <p>Score: ${score} / ${questions.length * 4}</p>
+        <p>Correct: ${correct}</p>
+        <p>Incorrect: ${incorrect}</p>
+        <p>Unattempted: ${unattempted}</p>
+      `;
     }
   </script>
 </body>

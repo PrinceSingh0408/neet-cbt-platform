@@ -16,19 +16,47 @@
       border-color: #2563eb;
       background-color: #dbeafe;
     }
+    .nav-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #ccc;
+    }
+    #progress {
+      color: #666;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
+  <div id="progress"></div>
   <h2 id="question">Loading...</h2>
   <div id="options"></div>
+  <div class="nav-buttons">
+    <button id="prevBtn" onclick="goPrev()">Previous</button>
+    <button id="nextBtn" onclick="goNext()">Next</button>
+  </div>
 
   <script>
     const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
     const SUPABASE_KEY = "sb_publishable_Eluq0Y73vVI9cFz6yRxzrA_df1IZNNs";
 
-    let selectedOption = null;
+    let questions = [];
+    let currentIndex = 0;
+    let answers = {}; // stores selected option per question id
 
-    fetch(`${SUPABASE_URL}/rest/v1/questions?select=*&limit=1`, {
+    fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, {
       headers: {
         "apikey": SUPABASE_KEY,
         "Authorization": `Bearer ${SUPABASE_KEY}`
@@ -36,30 +64,54 @@
     })
       .then(res => res.json())
       .then(data => {
-        const q = data[0];
-        document.getElementById("question").innerText = q.question_text;
-
-        const options = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
-        const container = document.getElementById("options");
-
-        Object.entries(options).forEach(([key, text]) => {
-          const div = document.createElement("div");
-          div.className = "option";
-          div.innerText = `${key}. ${text}`;
-          div.onclick = () => selectOption(key, div);
-          container.appendChild(div);
-        });
+        questions = data;
+        renderQuestion();
       })
       .catch(err => {
-        document.getElementById("question").innerText = "Error loading question.";
+        document.getElementById("question").innerText = "Error loading questions.";
         console.error(err);
       });
 
-    function selectOption(key, element) {
+    function renderQuestion() {
+      const q = questions[currentIndex];
+      document.getElementById("progress").innerText = `Question ${currentIndex + 1} of ${questions.length}`;
+      document.getElementById("question").innerText = q.question_text;
+
+      const options = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
+      const container = document.getElementById("options");
+      container.innerHTML = "";
+
+      Object.entries(options).forEach(([key, text]) => {
+        const div = document.createElement("div");
+        div.className = "option";
+        if (answers[q.id] === key) div.classList.add("selected");
+        div.innerText = `${key}. ${text}`;
+        div.onclick = () => selectOption(q.id, key, div);
+        container.appendChild(div);
+      });
+
+      document.getElementById("prevBtn").disabled = currentIndex === 0;
+      document.getElementById("nextBtn").disabled = currentIndex === questions.length - 1;
+    }
+
+    function selectOption(questionId, key, element) {
       document.querySelectorAll(".option").forEach(el => el.classList.remove("selected"));
       element.classList.add("selected");
-      selectedOption = key;
-      console.log("Selected:", selectedOption);
+      answers[questionId] = key;
+    }
+
+    function goNext() {
+      if (currentIndex < questions.length - 1) {
+        currentIndex++;
+        renderQuestion();
+      }
+    }
+
+    function goPrev() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderQuestion();
+      }
     }
   </script>
 </body>

@@ -35,6 +35,25 @@
     #timer { color: #dc2626; font-weight: bold; margin-bottom: 10px; }
     #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; }
     #result { font-size: 18px; line-height: 1.6; }
+
+    #palette {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 25px;
+    }
+    .palette-btn {
+      padding: 10px 0;
+      border-radius: 6px;
+      border: none;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      background: #e5e7eb;
+      color: #333;
+    }
+    .palette-btn.answered { background: #16a34a; color: white; }
+    .palette-btn.current { outline: 3px solid #2563eb; }
   </style>
 </head>
 <body>
@@ -46,6 +65,9 @@
     <button id="prevBtn" onclick="goPrev()">Previous</button>
     <button id="nextBtn" onclick="goNext()">Next</button>
   </div>
+
+  <div id="palette"></div>
+
   <button id="submitBtn" onclick="submitTest()">Submit Test</button>
   <div id="result"></div>
 
@@ -56,7 +78,7 @@
     let questions = [];
     let currentIndex = 0;
     let answers = {};
-    let timeLeft = 300; // 5 minutes for testing
+    let timeLeft = 300;
     let timerInterval;
 
     fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, {
@@ -69,6 +91,7 @@
       .then(data => {
         questions = data;
         renderQuestion();
+        renderPalette();
         startTimer();
       })
       .catch(err => {
@@ -114,12 +137,32 @@
 
       document.getElementById("prevBtn").disabled = currentIndex === 0;
       document.getElementById("nextBtn").disabled = currentIndex === questions.length - 1;
+
+      renderPalette();
+    }
+
+    function renderPalette() {
+      const container = document.getElementById("palette");
+      container.innerHTML = "";
+      questions.forEach((q, i) => {
+        const btn = document.createElement("button");
+        btn.className = "palette-btn";
+        if (answers[q.id]) btn.classList.add("answered");
+        if (i === currentIndex) btn.classList.add("current");
+        btn.innerText = i + 1;
+        btn.onclick = () => {
+          currentIndex = i;
+          renderQuestion();
+        };
+        container.appendChild(btn);
+      });
     }
 
     function selectOption(questionId, key, element) {
       document.querySelectorAll(".option").forEach(el => el.classList.remove("selected"));
       element.classList.add("selected");
       answers[questionId] = key;
+      renderPalette();
     }
 
     function goNext() {
@@ -153,6 +196,7 @@
       document.getElementById("question").style.display = "none";
       document.getElementById("options").style.display = "none";
       document.querySelector(".nav-buttons").style.display = "none";
+      document.getElementById("palette").style.display = "none";
       document.getElementById("submitBtn").style.display = "none";
       document.getElementById("progress").style.display = "none";
       document.getElementById("timer").style.display = "none";

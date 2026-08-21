@@ -145,7 +145,7 @@
 
     let questions = [];
     let currentIndex = 0;
-    let answers = {};
+    let answers = {}; // keyed by question_text (current primary key)
     let timeLeft = 300;
     let timerInterval;
 
@@ -197,9 +197,9 @@
       Object.entries(options).forEach(([key, text]) => {
         const div = document.createElement("div");
         div.className = "option";
-        if (answers[q.id] === key) div.classList.add("selected");
+        if (answers[q.question_text] === key) div.classList.add("selected");
         div.innerText = `${key}. ${text}`;
-        div.onclick = () => selectOption(q.id, key, div);
+        div.onclick = () => selectOption(q.question_text, key, div);
         container.appendChild(div);
       });
 
@@ -215,7 +215,7 @@
       questions.forEach((q, i) => {
         const btn = document.createElement("button");
         btn.className = "palette-btn";
-        if (answers[q.id]) btn.classList.add("answered");
+        if (answers[q.question_text]) btn.classList.add("answered");
         if (i === currentIndex) btn.classList.add("current");
         btn.innerText = i + 1;
         btn.onclick = () => {
@@ -231,10 +231,10 @@
       document.getElementById("paletteOverlay").classList.toggle("open");
     }
 
-    function selectOption(questionId, key, element) {
+    function selectOption(questionKey, key, element) {
       document.querySelectorAll(".option").forEach(el => el.classList.remove("selected"));
       element.classList.add("selected");
-      answers[questionId] = key;
+      answers[questionKey] = key;
       renderPalette();
     }
 
@@ -261,7 +261,7 @@
       let correct = 0, incorrect = 0, unattempted = 0;
 
       questions.forEach(q => {
-        const given = answers[q.id];
+        const given = answers[q.question_text];
         if (!given) unattempted++;
         else if (given === q.correct_option) correct++;
         else incorrect++;
@@ -280,4 +280,4 @@
     }
   </script>
 </body>
-  </html>
+</html>

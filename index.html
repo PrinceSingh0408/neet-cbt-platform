@@ -145,11 +145,11 @@
 
     let questions = [];
     let currentIndex = 0;
-    let answers = {}; // keyed by question_text (current primary key)
+    let answers = {}; // keyed by id
     let timeLeft = 300;
     let timerInterval;
 
-    fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, {
+    fetch(`${SUPABASE_URL}/rest/v1/questions?select=*&order=id`, {
       headers: {
         "apikey": SUPABASE_KEY,
         "Authorization": `Bearer ${SUPABASE_KEY}`
@@ -194,90 +194,4 @@
       const container = document.getElementById("options");
       container.innerHTML = "";
 
-      Object.entries(options).forEach(([key, text]) => {
-        const div = document.createElement("div");
-        div.className = "option";
-        if (answers[q.question_text] === key) div.classList.add("selected");
-        div.innerText = `${key}. ${text}`;
-        div.onclick = () => selectOption(q.question_text, key, div);
-        container.appendChild(div);
-      });
-
-      document.getElementById("prevBtn").disabled = currentIndex === 0;
-      document.getElementById("nextBtn").disabled = currentIndex === questions.length - 1;
-
-      renderPalette();
-    }
-
-    function renderPalette() {
-      const container = document.getElementById("paletteGrid");
-      container.innerHTML = "";
-      questions.forEach((q, i) => {
-        const btn = document.createElement("button");
-        btn.className = "palette-btn";
-        if (answers[q.question_text]) btn.classList.add("answered");
-        if (i === currentIndex) btn.classList.add("current");
-        btn.innerText = i + 1;
-        btn.onclick = () => {
-          currentIndex = i;
-          renderQuestion();
-          togglePalette();
-        };
-        container.appendChild(btn);
-      });
-    }
-
-    function togglePalette() {
-      document.getElementById("paletteOverlay").classList.toggle("open");
-    }
-
-    function selectOption(questionKey, key, element) {
-      document.querySelectorAll(".option").forEach(el => el.classList.remove("selected"));
-      element.classList.add("selected");
-      answers[questionKey] = key;
-      renderPalette();
-    }
-
-    function skipQuestion() {
-      goNext();
-    }
-
-    function goNext() {
-      if (currentIndex < questions.length - 1) {
-        currentIndex++;
-        renderQuestion();
-      }
-    }
-
-    function goPrev() {
-      if (currentIndex > 0) {
-        currentIndex--;
-        renderQuestion();
-      }
-    }
-
-    function submitTest() {
-      clearInterval(timerInterval);
-      let correct = 0, incorrect = 0, unattempted = 0;
-
-      questions.forEach(q => {
-        const given = answers[q.question_text];
-        if (!given) unattempted++;
-        else if (given === q.correct_option) correct++;
-        else incorrect++;
-      });
-
-      const score = (correct * 4) - (incorrect * 1);
-
-      document.querySelector("main").innerHTML = `<div id="result"></div>`;
-      document.getElementById("result").innerHTML = `
-        <h2>Test Submitted</h2>
-        <p>Score: ${score} / ${questions.length * 4}</p>
-        <p>Correct: ${correct}</p>
-        <p>Incorrect: ${incorrect}</p>
-        <p>Unattempted: ${unattempted}</p>
-      `;
-    }
-  </script>
-</body>
-</html>
+      Object.entries(options).forE

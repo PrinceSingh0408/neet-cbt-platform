@@ -52,11 +52,13 @@
       display: flex;
       justify-content: space-between;
       gap: 8px;
+      flex-wrap: wrap;
     }
     button.action {
       flex: 1;
+      min-width: 80px;
       padding: 12px;
-      font-size: 15px;
+      font-size: 14px;
       border-radius: 8px;
       border: none;
       background: #2563eb;
@@ -65,6 +67,7 @@
       font-weight: bold;
     }
     button.action.secondary { background: #64748b; }
+    button.action.review { background: #9333ea; }
     button.action:disabled { background: #cbd5e1; }
     #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; padding: 14px; font-size: 16px; }
     #result { font-size: 18px; line-height: 1.8; }
@@ -79,6 +82,7 @@
       box-shadow: -2px 0 10px rgba(0,0,0,0.2);
       padding: 16px;
       z-index: 10;
+      overflow-y: auto;
     }
     #paletteOverlay.open { display: block; }
     #paletteOverlay h3 { margin-top: 0; }
@@ -98,7 +102,11 @@
       color: #333;
     }
     .palette-btn.answered { background: #16a34a; color: white; }
+    .palette-btn.review { background: #9333ea; color: white; }
+    .palette-btn.answered.review { background: linear-gradient(135deg, #16a34a 50%, #9333ea 50%); color: white; }
     .palette-btn.current { outline: 3px solid #2563eb; }
+    .legend { margin-top: 16px; font-size: 13px; line-height: 1.8; }
+    .legend span { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
     #closePalette {
       margin-top: 16px;
       width: 100%;
@@ -126,7 +134,7 @@
     <div id="options"></div>
     <div class="nav-buttons">
       <button class="action secondary" id="prevBtn" onclick="goPrev()">Previous</button>
-      <button class="action secondary" onclick="skipQuestion()">Skip</button>
+      <button class="action review" onclick="toggleReview()">🚩 Review</button>
       <button class="action" id="nextBtn" onclick="goNext()">Next</button>
     </div>
     <button id="submitBtn" onclick="submitTest()">Submit Test</button>
@@ -136,6 +144,11 @@
   <div id="paletteOverlay">
     <h3>Question Palette</h3>
     <div id="paletteGrid"></div>
+    <div class="legend">
+      <div><span style="background:#16a34a"></span>Answered</div>
+      <div><span style="background:#9333ea"></span>Marked for Review</div>
+      <div><span style="background:#e5e7eb"></span>Not Answered</div>
+    </div>
     <button id="closePalette" onclick="togglePalette()">Close</button>
   </div>
 
@@ -145,7 +158,8 @@
 
     let questions = [];
     let currentIndex = 0;
-    let answers = {}; // keyed by id
+    let answers = {};       // { id: "A"/"B"/"C"/"D" }
+    let markedForReview = {}; // { id: true }
     let timeLeft = 300;
     let timerInterval;
 
@@ -216,6 +230,7 @@
         const btn = document.createElement("button");
         btn.className = "palette-btn";
         if (answers[q.id]) btn.classList.add("answered");
+        if (markedForReview[q.id]) btn.classList.add("review");
         if (i === currentIndex) btn.classList.add("current");
         btn.innerText = i + 1;
         btn.onclick = () => {
@@ -238,8 +253,10 @@
       renderPalette();
     }
 
-    function skipQuestion() {
-      goNext();
+    function toggleReview() {
+      const q = questions[currentIndex];
+      markedForReview[q.id] = !markedForReview[q.id];
+      renderPalette();
     }
 
     function goNext() {

@@ -50,13 +50,12 @@
     .nav-buttons {
       margin-top: 20px;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       gap: 8px;
-      flex-wrap: wrap;
     }
+    .nav-row { display: flex; gap: 8px; }
     button.action {
       flex: 1;
-      min-width: 80px;
       padding: 12px;
       font-size: 14px;
       border-radius: 8px;
@@ -67,7 +66,8 @@
       font-weight: bold;
     }
     button.action.secondary { background: #64748b; }
-    button.action.review { background: #9333ea; }
+    button.action.review { background: #9333ea; width: 100%; }
+    button.action.review.active { background: #6b21a8; box-shadow: inset 0 0 0 3px #ede9fe; }
     button.action:disabled { background: #cbd5e1; }
     #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; padding: 14px; font-size: 16px; }
     #result { font-size: 18px; line-height: 1.8; }
@@ -133,9 +133,11 @@
     <h2 id="question">Loading...</h2>
     <div id="options"></div>
     <div class="nav-buttons">
-      <button class="action secondary" id="prevBtn" onclick="goPrev()">Previous</button>
-      <button class="action review" onclick="toggleReview()">🚩 Review</button>
-      <button class="action" id="nextBtn" onclick="goNext()">Next</button>
+      <button class="action review" id="reviewBtn" onclick="toggleReview()">🚩 Mark for Review</button>
+      <div class="nav-row">
+        <button class="action secondary" id="prevBtn" onclick="goPrev()">Previous</button>
+        <button class="action" id="nextBtn" onclick="goNext()">Next</button>
+      </div>
     </div>
     <button id="submitBtn" onclick="submitTest()">Submit Test</button>
     <div id="result"></div>
@@ -158,8 +160,8 @@
 
     let questions = [];
     let currentIndex = 0;
-    let answers = {};       // { id: "A"/"B"/"C"/"D" }
-    let markedForReview = {}; // { id: true }
+    let answers = {};
+    let markedForReview = {};
     let timeLeft = 300;
     let timerInterval;
 
@@ -220,6 +222,15 @@
       document.getElementById("prevBtn").disabled = currentIndex === 0;
       document.getElementById("nextBtn").disabled = currentIndex === questions.length - 1;
 
+      const reviewBtn = document.getElementById("reviewBtn");
+      if (markedForReview[q.id]) {
+        reviewBtn.innerText = "✅ Marked for Review (tap to unmark)";
+        reviewBtn.classList.add("active");
+      } else {
+        reviewBtn.innerText = "🚩 Mark for Review";
+        reviewBtn.classList.remove("active");
+      }
+
       renderPalette();
     }
 
@@ -256,7 +267,7 @@
     function toggleReview() {
       const q = questions[currentIndex];
       markedForReview[q.id] = !markedForReview[q.id];
-      renderPalette();
+      renderQuestion();
     }
 
     function goNext() {
@@ -275,6 +286,8 @@
 
     function submitTest() {
       clearInterval(timerInterval);
+      document.getElementById("meta").style.display = "none";
+      document.querySelector("header .palette-toggle").style.display = "none";
       let correct = 0, incorrect = 0, unattempted = 0;
 
       questions.forEach(q => {
@@ -297,4 +310,4 @@
     }
   </script>
 </body>
-    </html>
+        </html>

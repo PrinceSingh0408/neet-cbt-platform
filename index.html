@@ -15,7 +15,7 @@
       align-items: center;
     }
     header .brand { font-weight: bold; font-size: 18px; }
-    header .right { display: flex; gap: 8px; align-items: center; }
+    header .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     header .palette-toggle {
       background: #2563eb;
       border: none;
@@ -154,6 +154,7 @@
     <div class="right">
       <button class="palette-toggle" onclick="togglePalette()">📋 <span id="paletteBtnLabel"></span></button>
       <a class="history-link" href="history.html">My Attempts</a>
+      <a class="history-link" href="analytics.html">📊 Stats</a>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   </header>

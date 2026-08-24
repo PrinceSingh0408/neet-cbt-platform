@@ -15,6 +15,7 @@
       align-items: center;
     }
     header .brand { font-weight: bold; font-size: 18px; }
+    header .right { display: flex; gap: 8px; align-items: center; }
     header .palette-toggle {
       background: #2563eb;
       border: none;
@@ -22,6 +23,15 @@
       padding: 8px 12px;
       border-radius: 6px;
       font-weight: bold;
+      cursor: pointer;
+    }
+    header .logout-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.5);
+      color: white;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
       cursor: pointer;
     }
     #meta {
@@ -121,7 +131,10 @@
 <body>
   <header>
     <div class="brand">🧬 NEET CBT</div>
-    <button class="palette-toggle" onclick="togglePalette()">📋 <span id="paletteBtnLabel"></span></button>
+    <div class="right">
+      <button class="palette-toggle" onclick="togglePalette()">📋 <span id="paletteBtnLabel"></span></button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
   </header>
 
   <div id="meta">
@@ -157,6 +170,19 @@
   <script>
     const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
     const SUPABASE_KEY = "sb_publishable_Eluq0Y73vVI9cFz6yRxzrA_df1IZNNs";
+
+    // --- Auth check: redirect to login if not authenticated ---
+    const accessToken = localStorage.getItem("access_token");
+    const userId = localStorage.getItem("user_id");
+    if (!accessToken || !userId) {
+      window.location.href = "login.html";
+    }
+
+    function logout() {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_id");
+      window.location.href = "login.html";
+    }
 
     let questions = [];
     let currentIndex = 0;
@@ -305,7 +331,7 @@
         method: "POST",
         headers: {
           "apikey": SUPABASE_KEY,
-          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -313,7 +339,8 @@
           correct: correct,
           incorrect: incorrect,
           unattempted: unattempted,
-          total_questions: questions.length
+          total_questions: questions.length,
+          user_id: userId
         })
       })
         .then(() => {
@@ -340,4 +367,4 @@
     }
   </script>
 </body>
-</html>
+  </html>

@@ -25,6 +25,15 @@
       font-weight: bold;
       cursor: pointer;
     }
+    header .history-link {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.5);
+      color: white;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-decoration: none;
+    }
     header .logout-btn {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.5);
@@ -81,12 +90,16 @@
     button.action:disabled { background: #cbd5e1; }
     #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; padding: 14px; font-size: 16px; }
     #result { font-size: 18px; line-height: 1.8; }
-    #historyLink {
+    .result-link {
       display: inline-block;
-      margin-top: 10px;
-      color: #2563eb;
-      font-weight: bold;
+      margin-top: 14px;
+      padding: 10px 16px;
+      background: #2563eb;
+      color: white;
+      border-radius: 8px;
       text-decoration: none;
+      font-weight: bold;
+      font-size: 14px;
     }
 
     #paletteOverlay {
@@ -140,6 +153,7 @@
     <div class="brand">🧬 NEET CBT</div>
     <div class="right">
       <button class="palette-toggle" onclick="togglePalette()">📋 <span id="paletteBtnLabel"></span></button>
+      <a class="history-link" href="history.html">My Attempts</a>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   </header>
@@ -333,7 +347,6 @@
 
       document.querySelector("main").innerHTML = `<div id="result"><p>Saving your result...</p></div>`;
 
-      // Step 1: create the attempt row, ask Supabase to return it (so we get its id)
       fetch(`${SUPABASE_URL}/rest/v1/attempts`, {
         method: "POST",
         headers: {
@@ -355,7 +368,6 @@
         .then(attemptData => {
           const attemptId = attemptData[0].id;
 
-          // Step 2: build one row per question and save them all
           const answerRows = questions.map(q => ({
             attempt_id: attemptId,
             question_id: q.id,
@@ -382,6 +394,7 @@
             <p>Incorrect: ${incorrect}</p>
             <p>Unattempted: ${unattempted}</p>
             <p style="color:#16a34a; font-size:14px;">✅ Result saved</p>
+            <a class="result-link" href="history.html">View in My Attempts →</a>
           `;
         })
         .catch(err => {
@@ -398,4 +411,4 @@
     }
   </script>
 </body>
-        </html>
+      </html>

@@ -127,7 +127,7 @@
             localStorage.setItem("access_token", data.access_token);
             localStorage.setItem("user_id", data.user.id);
             showMessage("Logged in! Redirecting...", false);
-            setTimeout(() => { window.location.href = "index.html"; }, 800);
+            setTimeout(() => { window.location.href = "home.html"; }, 800);
           } else {
             showMessage(data.msg || data.error_description || "Login failed", true);
           }

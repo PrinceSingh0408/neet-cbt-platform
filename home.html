@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NEET CBT Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8fafc; }
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 18px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .brand { font-weight: bold; font-size: 18px; }
+    header .logout-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.5);
+      color: white;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    main { padding: 20px 16px; max-width: 500px; margin: 0 auto; }
+    .welcome { font-size: 15px; color: #475569; margin-bottom: 20px; }
+
+    .tile {
+      display: block;
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+      text-decoration: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .tile .emoji { font-size: 28px; }
+    .tile .text-block { flex: 1; }
+    .tile .title { font-weight: bold; color: #1e293b; font-size: 16px; }
+    .tile .sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+    .tile .arrow { color: #94a3b8; font-size: 20px; }
+
+    .tile.primary { background: #2563eb; }
+    .tile.primary .title, .tile.primary .sub { color: white; }
+    .tile.primary .sub { color: #dbeafe; }
+    .tile.primary .arrow { color: white; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">🧬 NEET CBT</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </header>
+
+  <main>
+    <div class="welcome">Ready to practice? Pick where you want to go.</div>
+
+    <a class="tile primary" href="index.html">
+      <div class="emoji">📝</div>
+      <div class="text-block">
+        <div class="title">Start Practice Test</div>
+        <div class="sub">Jump into a CBT-style test now</div>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+
+    <a class="tile" href="history.html">
+      <div class="emoji">🕓</div>
+      <div class="text-block">
+        <div class="title">My Attempts</div>
+        <div class="sub">Review your past tests, question by question</div>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+
+    <a class="tile" href="analytics.html">
+      <div class="emoji">📊</div>
+      <div class="text-block">
+        <div class="title">My Stats</div>
+        <div class="sub">Subject-wise accuracy and performance</div>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+  </main>
+
+  <script>
+    const accessToken = localStorage.getItem("access_token");
+    if (!accessToken) {
+      window.location.href = "login.html";
+    }
+    function logout() {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_id");
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+      </html>

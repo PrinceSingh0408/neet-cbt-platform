@@ -299,15 +299,45 @@
 
       const score = (correct * 4) - (incorrect * 1);
 
-      document.querySelector("main").innerHTML = `<div id="result"></div>`;
-      document.getElementById("result").innerHTML = `
-        <h2>Test Submitted</h2>
-        <p>Score: ${score} / ${questions.length * 4}</p>
-        <p>Correct: ${correct}</p>
-        <p>Incorrect: ${incorrect}</p>
-        <p>Unattempted: ${unattempted}</p>
-      `;
+      document.querySelector("main").innerHTML = `<div id="result"><p>Saving your result...</p></div>`;
+
+      fetch(`${SUPABASE_URL}/rest/v1/attempts`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          score: score,
+          correct: correct,
+          incorrect: incorrect,
+          unattempted: unattempted,
+          total_questions: questions.length
+        })
+      })
+        .then(() => {
+          document.getElementById("result").innerHTML = `
+            <h2>Test Submitted</h2>
+            <p>Score: ${score} / ${questions.length * 4}</p>
+            <p>Correct: ${correct}</p>
+            <p>Incorrect: ${incorrect}</p>
+            <p>Unattempted: ${unattempted}</p>
+            <p style="color:#16a34a; font-size:14px;">✅ Result saved</p>
+          `;
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById("result").innerHTML = `
+            <h2>Test Submitted</h2>
+            <p>Score: ${score} / ${questions.length * 4}</p>
+            <p>Correct: ${correct}</p>
+            <p>Incorrect: ${incorrect}</p>
+            <p>Unattempted: ${unattempted}</p>
+            <p style="color:#dc2626; font-size:14px;">⚠️ Couldn't save result — check connection</p>
+          `;
+        });
     }
   </script>
 </body>
-        </html>
+</html>

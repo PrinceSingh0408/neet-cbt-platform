@@ -15,6 +15,7 @@
       align-items: center;
     }
     header .brand { font-weight: bold; font-size: 18px; }
+    header .links { display: flex; gap: 8px; }
     header a { color: white; text-decoration: none; font-size: 14px; border: 1px solid rgba(255,255,255,0.5); padding: 6px 10px; border-radius: 6px; }
     main { padding: 16px; max-width: 500px; margin: 0 auto; }
 
@@ -49,7 +50,10 @@
 <body>
   <header>
     <div class="brand">📊 Analytics</div>
-    <a href="index.html">New Test</a>
+    <div class="links">
+      <a href="home.html">🏠 Home</a>
+      <a href="index.html">New Test</a>
+    </div>
   </header>
 
   <main>
@@ -81,7 +85,6 @@
       };
     }
 
-    // Get all attempts belonging to this user first (to filter attempt_answers correctly)
     fetch(`${SUPABASE_URL}/rest/v1/attempts?select=id&user_id=eq.${userId}`, {
       headers: authHeaders()
     })
@@ -114,7 +117,6 @@
       const overallAcc = answered.length ? Math.round((correctCount / answered.length) * 100) : 0;
       document.getElementById("overallAccuracy").innerText = overallAcc + "%";
 
-      // Group by subject
       const subjects = {};
       rows.forEach(r => {
         const subj = (r.questions && r.questions.subject) || "Uncategorized";
@@ -143,4 +145,4 @@
     }
   </script>
 </body>
-  </html>
+</html>

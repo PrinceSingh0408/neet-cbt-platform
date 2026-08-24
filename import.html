@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Import PDF - NEET CBT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8fafc; }
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .brand { font-weight: bold; font-size: 18px; }
+    header a { color: white; text-decoration: none; font-size: 14px; border: 1px solid rgba(255,255,255,0.5); padding: 6px 10px; border-radius: 6px; }
+    main { padding: 16px; max-width: 500px; margin: 0 auto; }
+    .card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    input[type="file"] { width: 100%; margin: 12px 0; }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #status { margin-top: 12px; font-size: 14px; color: #64748b; }
+    #output {
+      margin-top: 16px;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">📄 Import PDF</div>
+    <a href="home.html">🏠 Home</a>
+  </header>
+
+  <main>
+    <div class="card">
+      <p>Select a question-bank PDF to extract its raw text.</p>
+      <input type="file" id="pdfFile" accept="application/pdf">
+      <button onclick="extractText()">Extract Text</button>
+      <div id="status"></div>
+    </div>
+    <div id="output"></div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    async function extractText() {
+      const fileInput = document.getElementById("pdfFile");
+      const status = document.getElementById("status");
+      const output = document.getElementById("output");
+
+      if (!fileInput.files.length) {
+        status.innerText = "Please select a PDF first.";
+        return;
+      }
+
+      status.innerText = "Reading file...";
+      output.innerText = "";
+
+      const file = fileInput.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+
+      try {
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        status.innerText = `PDF loaded: ${pdf.numPages} page(s). Extracting text...`;
+
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const pageText = content.items.map(item => item.str).join(" ");
+          fullText += `\n--- Page ${i} ---\n` + pageText + "\n";
+        }
+
+        output.innerText = fullText;
+        status.innerText = `Done. Extracted text from ${pdf.numPages} page(s).`;
+      } catch (err) {
+        console.error(err);
+        status.innerText = "Error reading PDF: " + err.message;
+      }
+    }
+  </script>
+</body>
+    </html>

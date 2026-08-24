@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Analytics - NEET CBT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8fafc; }
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .brand { font-weight: bold; font-size: 18px; }
+    header a { color: white; text-decoration: none; font-size: 14px; border: 1px solid rgba(255,255,255,0.5); padding: 6px 10px; border-radius: 6px; }
+    main { padding: 16px; max-width: 500px; margin: 0 auto; }
+
+    .summary-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .summary-card {
+      flex: 1;
+      background: white;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .summary-card .num { font-size: 20px; font-weight: bold; color: #1e3a8a; }
+    .summary-card .label { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    h3 { margin: 20px 0 10px; color: #1e293b; }
+    .subject-card {
+      background: white;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .subject-card .top-row { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; }
+    .bar-bg { background: #e5e7eb; border-radius: 6px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 6px; }
+    .subject-card .sub-stats { font-size: 12px; color: #64748b; margin-top: 6px; }
+
+    #emptyMsg { text-align: center; color: #64748b; margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">📊 Analytics</div>
+    <a href="index.html">New Test</a>
+  </header>
+
+  <main>
+    <div class="summary-row">
+      <div class="summary-card"><div class="num" id="totalAttempts">–</div><div class="label">Tests Taken</div></div>
+      <div class="summary-card"><div class="num" id="overallAccuracy">–</div><div class="label">Accuracy</div></div>
+      <div class="summary-card"><div class="num" id="totalAnswered">–</div><div class="label">Questions Done</div></div>
+    </div>
+
+    <h3>Subject-wise Performance</h3>
+    <div id="subjectList"></div>
+    <div id="emptyMsg" style="display:none;">No attempts yet. Take a test to see analytics here.</div>
+  </main>
+
+  <script>
+    const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Eluq0Y73vVI9cFz6yRxzrA_df1IZNNs";
+    const accessToken = localStorage.getItem("access_token");
+    const userId = localStorage.getItem("user_id");
+
+    if (!accessToken || !userId) {
+      window.location.href = "login.html";
+    }
+
+    function authHeaders() {
+      return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${accessToken}`
+      };
+    }
+
+    // Get all attempts belonging to this user first (to filter attempt_answers correctly)
+    fetch(`${SUPABASE_URL}/rest/v1/attempts?select=id&user_id=eq.${userId}`, {
+      headers: authHeaders()
+    })
+      .then(res => res.json())
+      .then(attempts => {
+        document.getElementById("totalAttempts").innerText = attempts.length;
+
+        if (!attempts.length) {
+          document.getElementById("emptyMsg").style.display = "block";
+          return;
+        }
+
+        const attemptIds = attempts.map(a => a.id).join(",");
+
+        return fetch(`${SUPABASE_URL}/rest/v1/attempt_answers?select=*,questions(subject,chapter)&attempt_id=in.(${attemptIds})`, {
+          headers: authHeaders()
+        })
+          .then(res => res.json())
+          .then(rows => {
+            renderAnalytics(rows);
+          });
+      })
+      .catch(err => console.error(err));
+
+    function renderAnalytics(rows) {
+      const answered = rows.filter(r => r.selected_option);
+      document.getElementById("totalAnswered").innerText = answered.length;
+
+      const correctCount = rows.filter(r => r.is_correct).length;
+      const overallAcc = answered.length ? Math.round((correctCount / answered.length) * 100) : 0;
+      document.getElementById("overallAccuracy").innerText = overallAcc + "%";
+
+      // Group by subject
+      const subjects = {};
+      rows.forEach(r => {
+        const subj = (r.questions && r.questions.subject) || "Uncategorized";
+        if (!subjects[subj]) subjects[subj] = { total: 0, correct: 0, attempted: 0 };
+        subjects[subj].total++;
+        if (r.selected_option) subjects[subj].attempted++;
+        if (r.is_correct) subjects[subj].correct++;
+      });
+
+      const container = document.getElementById("subjectList");
+      container.innerHTML = "";
+
+      Object.entries(subjects).forEach(([subject, stats]) => {
+        const acc = stats.attempted ? Math.round((stats.correct / stats.attempted) * 100) : 0;
+        const barColor = acc >= 75 ? "#16a34a" : acc >= 50 ? "#eab308" : "#dc2626";
+
+        const div = document.createElement("div");
+        div.className = "subject-card";
+        div.innerHTML = `
+          <div class="top-row"><span>${subject}</span><span>${acc}%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${acc}%; background:${barColor};"></div></div>
+          <div class="sub-stats">${stats.correct} correct out of ${stats.attempted} attempted (${stats.total} total questions seen)</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+  </script>
+</body>
+  </html>

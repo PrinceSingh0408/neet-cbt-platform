@@ -5,39 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * { box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8fafc; padding: 20px; }
-    .brand { text-align: center; font-size: 22px; font-weight: bold; color: #1e3a8a; margin: 30px 0; }
-    .card { max-width: 400px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(160deg, #1e3a8a 0%, #2563eb 45%, #f8fafc 45%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .brand {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    .brand .icon { font-size: 40px; }
+    .brand h1 { margin: 8px 0 4px; font-size: 24px; }
+    .brand p { margin: 0; font-size: 13px; opacity: 0.85; }
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: white;
+      padding: 28px 24px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: #1e293b; }
+    .card p.sub { margin: 0 0 18px; font-size: 13px; color: #64748b; }
+    label { font-size: 13px; font-weight: bold; color: #334155; display: block; margin-top: 12px; margin-bottom: 4px; }
     input {
       width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border: 2px solid #cbd5e1;
-      border-radius: 8px;
+      padding: 12px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
       font-size: 15px;
+      transition: border-color 0.15s;
     }
+    input:focus { outline: none; border-color: #2563eb; }
     button {
       width: 100%;
-      padding: 12px;
-      margin-top: 10px;
+      padding: 13px;
+      margin-top: 18px;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 10px;
+      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
+      transition: opacity 0.15s;
     }
+    button:active { opacity: 0.85; }
     #loginBtn { background: #2563eb; color: white; }
-    #signupBtn { background: #16a34a; color: white; }
-    #message { text-align: center; margin-top: 12px; font-size: 14px; }
+    #signupBtn { background: white; color: #16a34a; border: 2px solid #16a34a; margin-top: 10px; }
+    #message { text-align: center; margin-top: 14px; font-size: 13px; min-height: 18px; font-weight: 500; }
   </style>
 </head>
 <body>
-  <div class="brand">🧬 NEET CBT</div>
+  <div class="brand">
+    <div class="icon">🧬</div>
+    <h1>NEET CBT</h1>
+    <p>Practice like it's exam day</p>
+  </div>
+
   <div class="card">
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password (min 6 characters)">
+    <h2>Welcome</h2>
+    <p class="sub">Log in or create an account to start practicing</p>
+
+    <label>Email</label>
+    <input type="email" id="email" placeholder="you@example.com">
+
+    <label>Password</label>
+    <input type="password" id="password" placeholder="Min 6 characters">
+
     <button id="loginBtn" onclick="login()">Log In</button>
-    <button id="signupBtn" onclick="signup()">Sign Up</button>
+    <button id="signupBtn" onclick="signup()">Create New Account</button>
     <div id="message"></div>
   </div>
 
@@ -95,4 +136,4 @@
     }
   </script>
 </body>
-  </html>
+</html>

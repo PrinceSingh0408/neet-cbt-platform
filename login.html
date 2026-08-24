@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login - NEET CBT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8fafc; padding: 20px; }
+    .brand { text-align: center; font-size: 22px; font-weight: bold; color: #1e3a8a; margin: 30px 0; }
+    .card { max-width: 400px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #loginBtn { background: #2563eb; color: white; }
+    #signupBtn { background: #16a34a; color: white; }
+    #message { text-align: center; margin-top: 12px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="brand">🧬 NEET CBT</div>
+  <div class="card">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password (min 6 characters)">
+    <button id="loginBtn" onclick="login()">Log In</button>
+    <button id="signupBtn" onclick="signup()">Sign Up</button>
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Eluq0Y73vVI9cFz6yRxzrA_df1IZNNs";
+
+    function showMessage(text, isError) {
+      const el = document.getElementById("message");
+      el.innerText = text;
+      el.style.color = isError ? "#dc2626" : "#16a34a";
+    }
+
+    function signup() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.id || data.user) {
+            showMessage("Account created! Now tap Log In.", false);
+          } else {
+            showMessage(data.msg || data.error_description || "Signup failed", true);
+          }
+        })
+        .catch(err => showMessage("Network error", true));
+    }
+
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.access_token) {
+            localStorage.setItem("access_token", data.access_token);
+            localStorage.setItem("user_id", data.user.id);
+            showMessage("Logged in! Redirecting...", false);
+            setTimeout(() => { window.location.href = "index.html"; }, 800);
+          } else {
+            showMessage(data.msg || data.error_description || "Login failed", true);
+          }
+        })
+        .catch(err => showMessage("Network error", true));
+    }
+  </script>
+</body>
+  </html>

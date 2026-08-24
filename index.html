@@ -81,6 +81,13 @@
     button.action:disabled { background: #cbd5e1; }
     #submitBtn { background: #16a34a; margin-top: 15px; width: 100%; padding: 14px; font-size: 16px; }
     #result { font-size: 18px; line-height: 1.8; }
+    #historyLink {
+      display: inline-block;
+      margin-top: 10px;
+      color: #2563eb;
+      font-weight: bold;
+      text-decoration: none;
+    }
 
     #paletteOverlay {
       display: none;
@@ -171,7 +178,6 @@
     const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
     const SUPABASE_KEY = "sb_publishable_Eluq0Y73vVI9cFz6yRxzrA_df1IZNNs";
 
-    // --- Auth check: redirect to login if not authenticated ---
     const accessToken = localStorage.getItem("access_token");
     const userId = localStorage.getItem("user_id");
     if (!accessToken || !userId) {
@@ -327,12 +333,14 @@
 
       document.querySelector("main").innerHTML = `<div id="result"><p>Saving your result...</p></div>`;
 
+      // Step 1: create the attempt row, ask Supabase to return it (so we get its id)
       fetch(`${SUPABASE_URL}/rest/v1/attempts`, {
         method: "POST",
         headers: {
           "apikey": SUPABASE_KEY,
           "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Prefer": "return=representation"
         },
         body: JSON.stringify({
           score: score,
@@ -343,6 +351,29 @@
           user_id: userId
         })
       })
+        .then(res => res.json())
+        .then(attemptData => {
+          const attemptId = attemptData[0].id;
+
+          // Step 2: build one row per question and save them all
+          const answerRows = questions.map(q => ({
+            attempt_id: attemptId,
+            question_id: q.id,
+            selected_option: answers[q.id] || null,
+            correct_option: q.correct_option,
+            is_correct: answers[q.id] === q.correct_option
+          }));
+
+          return fetch(`${SUPABASE_URL}/rest/v1/attempt_answers`, {
+            method: "POST",
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${accessToken}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(answerRows)
+          });
+        })
         .then(() => {
           document.getElementById("result").innerHTML = `
             <h2>Test Submitted</h2>
@@ -367,4 +398,4 @@
     }
   </script>
 </body>
-  </html>
+        </html>

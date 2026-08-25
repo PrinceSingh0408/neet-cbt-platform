@@ -89,8 +89,7 @@
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          const pageText = content.items.map(item => item.str).join(" ");
-          fullText += `\n--- Page ${i} ---\n` + pageText + "\n";
+          fullText += `\n--- Page ${i} ---\n` + reconstructLines(content.items);
         }
 
         output.innerText = fullText;
@@ -100,6 +99,34 @@
         status.innerText = "Error reading PDF: " + err.message;
       }
     }
+
+    // Groups text items into lines based on their vertical (y) position,
+    // then sorts each line's items left-to-right by x position.
+    function reconstructLines(items) {
+      if (!items.length) return "";
+
+      const lines = [];
+      const yTolerance = 3; // items within 3px vertically are treated as the same line
+
+      items.forEach(item => {
+        const y = item.transform[5];
+        const x = item.transform[4];
+        let line = lines.find(l => Math.abs(l.y - y) < yTolerance);
+        if (!line) {
+          line = { y: y, items: [] };
+          lines.push(line);
+        }
+        line.items.push({ x: x, text: item.str });
+      });
+
+      // Sort lines top-to-bottom (PDF y-coordinates increase upward, so descending)
+      lines.sort((a, b) => b.y - a.y);
+
+      return lines.map(line => {
+        line.items.sort((a, b) => a.x - b.x);
+        return line.items.map(i => i.text).join(" ");
+      }).join("\n");
+    }
   </script>
 </body>
-    </html>
+</html>

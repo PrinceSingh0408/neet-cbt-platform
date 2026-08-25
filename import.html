@@ -16,11 +16,10 @@
     }
     header .brand { font-weight: bold; font-size: 18px; }
     header a { color: white; text-decoration: none; font-size: 14px; border: 1px solid rgba(255,255,255,0.5); padding: 6px 10px; border-radius: 6px; }
-    main { padding: 16px; max-width: 500px; margin: 0 auto; }
+    main { padding: 16px; max-width: 600px; margin: 0 auto; }
     .card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     input[type="file"] { width: 100%; margin: 12px 0; }
     button {
-      width: 100%;
       padding: 12px;
       background: #2563eb;
       color: white;
@@ -30,19 +29,41 @@
       font-size: 15px;
       cursor: pointer;
     }
+    .fullBtn { width: 100%; }
     #status { margin-top: 12px; font-size: 14px; color: #64748b; }
-    #output {
-      margin-top: 16px;
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      white-space: pre-wrap;
-      max-height: 400px;
-      overflow-y: auto;
-      font-family: monospace;
+
+    .q-review {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
+    .q-review.saved { opacity: 0.5; }
+    .raw-text {
+      width: 100%;
+      min-height: 90px;
+      font-family: monospace;
+      font-size: 12px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+    .field-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .field-row input, .field-row select {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    label.small { font-size: 11px; color: #64748b; display: block; margin-bottom: 2px; }
+    .save-btn { background: #16a34a; margin-top: 8px; width: 100%; }
+    .save-btn:disabled { background: #86efac; cursor: default; }
+
+    #reviewSection { display: none; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -53,22 +74,31 @@
 
   <main>
     <div class="card">
-      <p>Select a question-bank PDF to extract its raw text.</p>
+      <p>Select a question-bank PDF to extract and review its questions.</p>
       <input type="file" id="pdfFile" accept="application/pdf">
-      <button onclick="extractText()">Extract Text</button>
+      <button class="fullBtn" onclick="extractAndSplit()">Extract & Split Questions</button>
       <div id="status"></div>
     </div>
-    <div id="output"></div>
+
+    <div id="reviewSection"></div>
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-    async function extractText() {
+    const SUPABASE_URL = "https://tqjjnogifmhcslbxwnrs.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Eluq0Y73vVI9cFz6yRxzrA_df1IZNNs";
+    const accessToken = localStorage.getItem("access_token");
+
+    if (!accessToken) {
+      window.location.href = "login.html";
+    }
+
+    async function extractAndSplit() {
       const fileInput = document.getElementById("pdfFile");
       const status = document.getElementById("status");
-      const output = document.getElementById("output");
+      const reviewSection = document.getElementById("reviewSection");
 
       if (!fileInput.files.length) {
         status.innerText = "Please select a PDF first.";
@@ -76,56 +106,174 @@
       }
 
       status.innerText = "Reading file...";
-      output.innerText = "";
+      reviewSection.innerHTML = "";
+      reviewSection.style.display = "none";
 
-      const file = fileInput.files[0];
-      const arrayBuffer = await file.arrayBuffer();
+      const fileName = fileInput.files[0].name;
+      const arrayBuffer = await fileInput.files[0].arrayBuffer();
 
       try {
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        status.innerText = `PDF loaded: ${pdf.numPages} page(s). Extracting text...`;
+        status.innerText = `Extracting text from ${pdf.numPages} page(s)...`;
 
         let fullText = "";
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          fullText += `\n--- Page ${i} ---\n` + reconstructLines(content.items);
+          fullText += "\n" + reconstructLines(content.items);
         }
 
-        output.innerText = fullText;
-        status.innerText = `Done. Extracted text from ${pdf.numPages} page(s).`;
+        const chunks = splitIntoQuestions(fullText);
+        status.innerText = `Found ${chunks.length} rough question chunk(s) from "${fileName}". Review and save each below.`;
+        renderReviewCards(chunks, fileName);
       } catch (err) {
         console.error(err);
         status.innerText = "Error reading PDF: " + err.message;
       }
     }
 
-    // Groups text items into lines based on their vertical (y) position,
-    // then sorts each line's items left-to-right by x position.
     function reconstructLines(items) {
       if (!items.length) return "";
-
       const lines = [];
-      const yTolerance = 3; // items within 3px vertically are treated as the same line
-
+      const yTolerance = 3;
       items.forEach(item => {
         const y = item.transform[5];
         const x = item.transform[4];
         let line = lines.find(l => Math.abs(l.y - y) < yTolerance);
-        if (!line) {
-          line = { y: y, items: [] };
-          lines.push(line);
-        }
+        if (!line) { line = { y: y, items: [] }; lines.push(line); }
         line.items.push({ x: x, text: item.str });
       });
-
-      // Sort lines top-to-bottom (PDF y-coordinates increase upward, so descending)
       lines.sort((a, b) => b.y - a.y);
-
       return lines.map(line => {
         line.items.sort((a, b) => a.x - b.x);
         return line.items.map(i => i.text).join(" ");
       }).join("\n");
+    }
+
+    // Splits raw text into chunks at points that look like a new question number
+    // (a line starting with 1-3 digits followed by a period).
+    function splitIntoQuestions(text) {
+      const lines = text.split("\n");
+      const chunks = [];
+      let current = [];
+
+      const isQuestionStart = (line) => /^\s*\d{1,3}\s*\./.test(line);
+
+      lines.forEach(line => {
+        if (isQuestionStart(line) && current.length > 0) {
+          chunks.push(current.join("\n").trim());
+          current = [line];
+        } else {
+          current.push(line);
+        }
+      });
+      if (current.length) chunks.push(current.join("\n").trim());
+
+      // Filter out tiny/empty chunks (likely not real questions)
+      return chunks.filter(c => c.length > 15);
+    }
+
+    function renderReviewCards(chunks, fileName) {
+      const container = document.getElementById("reviewSection");
+      container.style.display = "block";
+      container.innerHTML = "";
+
+      chunks.forEach((chunk, index) => {
+        const card = document.createElement("div");
+        card.className = "q-review";
+        card.innerHTML = `
+          <label class="small">Raw extracted text (chunk ${index + 1}) — edit as needed</label>
+          <textarea class="raw-text" id="raw-${index}">${chunk}</textarea>
+
+          <label class="small">Question text (copy from above)</label>
+          <input type="text" id="qtext-${index}" placeholder="Paste/type the clean question text">
+
+          <div class="field-row">
+            <div style="flex:1"><label class="small">Option A</label><input type="text" id="a-${index}"></div>
+            <div style="flex:1"><label class="small">Option B</label><input type="text" id="b-${index}"></div>
+          </div>
+          <div class="field-row">
+            <div style="flex:1"><label class="small">Option C</label><input type="text" id="c-${index}"></div>
+            <div style="flex:1"><label class="small">Option D</label><input type="text" id="d-${index}"></div>
+          </div>
+          <div class="field-row">
+            <div style="flex:1">
+              <label class="small">Correct Option</label>
+              <select id="correct-${index}">
+                <option value="">–</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </div>
+            <div style="flex:1"><label class="small">Subject</label><input type="text" id="subject-${index}" placeholder="e.g. Physics"></div>
+          </div>
+          <div class="field-row">
+            <div style="flex:1"><label class="small">Chapter</label><input type="text" id="chapter-${index}"></div>
+          </div>
+
+          <button class="save-btn" id="savebtn-${index}" onclick="saveQuestion(${index}, '${fileName.replace(/'/g, "")}')">Save to Question Bank</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function saveQuestion(index, fileName) {
+      const qtext = document.getElementById(`qtext-${index}`).value.trim();
+      const a = document.getElementById(`a-${index}`).value.trim();
+      const b = document.getElementById(`b-${index}`).value.trim();
+      const c = document.getElementById(`c-${index}`).value.trim();
+      const d = document.getElementById(`d-${index}`).value.trim();
+      const correct = document.getElementById(`correct-${index}`).value;
+      const subject = document.getElementById(`subject-${index}`).value.trim();
+      const chapter = document.getElementById(`chapter-${index}`).value.trim();
+
+      if (!qtext || !a || !b || !c || !d || !correct) {
+        alert("Please fill in the question text, all 4 options, and the correct answer before saving.");
+        return;
+      }
+
+      const btn = document.getElementById(`savebtn-${index}`);
+      btn.disabled = true;
+      btn.innerText = "Saving...";
+
+      fetch(`${SUPABASE_URL}/rest/v1/questions`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          question_text: qtext,
+          option_a: a,
+          option_b: b,
+          option_c: c,
+          option_d: d,
+          correct_option: correct,
+          subject: subject || null,
+          chapter: chapter || null,
+          is_verified: true,
+          source: `pdf_import:${fileName}`
+        })
+      })
+        .then(res => {
+          if (res.ok) {
+            btn.innerText = "✅ Saved";
+            document.getElementById(`raw-${index}`).closest(".q-review").classList.add("saved");
+          } else {
+            btn.disabled = false;
+            btn.innerText = "Save to Question Bank";
+            alert("Failed to save — check console for details.");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          btn.disabled = false;
+          btn.innerText = "Save to Question Bank";
+          alert("Network error while saving.");
+        });
     }
   </script>
 </body>
